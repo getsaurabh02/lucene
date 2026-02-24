@@ -677,7 +677,7 @@ public class RegExp {
         // we don't support arbitrary complement, just "negated character class"
         // this is just a list of characters (e.g. "a") or ranges (e.g. "b-d")
         a = exp1.toAutomaton(automata, automaton_provider);
-        a = Operations.complement(a, Integer.MAX_VALUE);
+        a = complementCharSet(a);
         break;
       case REGEXP_CHAR:
         if (check(ASCII_CASE_INSENSITIVE | CASE_INSENSITIVE)) {
@@ -730,6 +730,41 @@ public class RegExp {
         break;
     }
     return a;
+  }
+
+  /**
+   * Complements a character set automaton by computing the "gaps" between ranges.
+   *
+   * <p>This is a specialized method for complementing simple character class automata (flat DFAs
+   * with character ranges). It extracts the transitions from the input automaton and returns a new
+   * automaton accepting all characters NOT in those ranges.
+   */
+  private static Automaton complementCharSet(Automaton a) {
+    List<Integer> starts = new ArrayList<>();
+    List<Integer> ends = new ArrayList<>();
+    Transition t = new Transition();
+    int numTransitions = a.initTransition(0, t);
+    for (int i = 0; i < numTransitions; i++) {
+      a.getNextTransition(t);
+      starts.add(t.min);
+      ends.add(t.max);
+    }
+
+    List<Automaton> gaps = new ArrayList<>();
+    int lastEnd = -1;
+    for (int i = 0; i < starts.size(); i++) {
+      int start = starts.get(i);
+      int end = ends.get(i);
+      if (lastEnd + 1 < start) {
+        gaps.add(Automata.makeCharRange(lastEnd + 1, start - 1));
+      }
+      lastEnd = end;
+    }
+    if (lastEnd < Integer.MAX_VALUE) {
+      gaps.add(Automata.makeCharRange(lastEnd + 1, Integer.MAX_VALUE));
+    }
+
+    return gaps.isEmpty() ? Automata.makeEmpty() : Operations.union(gaps);
   }
 
   /**

@@ -8,6 +8,11 @@ http://s.apache.org/luceneversions
 API Changes
 ---------------------
 
+* GITHUB#XXXXX: Replace Operations.complement() usage in RegExp with a simpler private method
+  that computes character set complements by finding gaps between ranges. This avoids the
+  expensive general-purpose complement operation for the simple case of negated character classes.
+  (Saurabh Singh)
+
 * GITHUB#15763: Deprecate Operations.complement() method. This operation can be slow and is not
   recommended for production use. It will be removed in Lucene 12. (Saurabh Singh)
 
